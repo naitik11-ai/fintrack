@@ -4,6 +4,7 @@ import { LayoutDashboard, ListChecks, Settings, Sun, Moon, TrendingUp, Plus, Men
 import { useTheme } from '../contexts/ThemeContext';
 import { useState } from 'react';
 import TransactionForm from './TransactionForm';
+import QuickExpenseEntry from './QuickExpenseEntry';
 
 const NAV_ITEMS = [
   { to: '/',             label: 'Dashboard',    icon: LayoutDashboard },
@@ -15,6 +16,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [showForm,    setShowForm]    = useState(false);
+  const [showQuickEntry, setShowQuickEntry] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile drawer
 
   return (
@@ -82,7 +84,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ═══ Main Content ═══ */}
-      <main className="flex-1 md:ml-60 min-h-screen
+      <main className="flex-1 md:ml-60 min-h-screen min-w-0
                        pt-14 md:pt-0
                        pb-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom,0px))] md:pb-0
                        overflow-x-hidden">
@@ -114,8 +116,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </button>
       </nav>
 
+      <button
+        onClick={() => setShowQuickEntry(true)}
+        className="hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 rounded-full bg-gradient-to-br from-accent to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-2xl shadow-accent/25 hover:shadow-accent/40 transition-all"
+      >
+        <Plus size={16} /> Add Expense
+      </button>
+
       {/* Transaction Form */}
       {showForm && <TransactionForm onClose={() => setShowForm(false)} />}
+      <QuickExpenseEntry isOpen={showQuickEntry} onClose={() => setShowQuickEntry(false)} />
     </div>
   );
 }

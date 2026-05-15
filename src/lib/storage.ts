@@ -7,15 +7,32 @@ export interface LocalProfile {
   displayName: string;
   monthlyBudget: number;
   currency: string;
+  savingsGoals: {
+    id: string;
+    title: string;
+    targetAmount: number;
+    currentAmount: number;
+    deadline: string;
+    createdAt: number;
+  }[];
+  customCategories: string[];
 }
 
 // ---------- Profile ----------
+const DEFAULT_PROFILE: LocalProfile = {
+  displayName: 'You',
+  monthlyBudget: 50000,
+  currency: 'INR',
+  savingsGoals: [],
+  customCategories: [],
+};
+
 export function loadProfile(): LocalProfile {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
   } catch {}
-  return { displayName: 'You', monthlyBudget: 50000, currency: 'INR' };
+  return { ...DEFAULT_PROFILE };
 }
 
 export function saveProfile(profile: LocalProfile): void {

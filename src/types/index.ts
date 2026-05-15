@@ -15,7 +15,8 @@ export type Category =
   | 'Personal Care'
   | 'Gifts & Donations'
   | 'Groceries'
-  | 'Other';
+  | 'Other'
+  | string;
 
 export type PaymentMethod = 'UPI' | 'Cash' | 'Card' | 'Net Banking' | 'Wallet';
 
@@ -39,6 +40,15 @@ export interface Transaction {
 
 export type NewTransaction = Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 
+export interface SavingsGoal {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline: string;
+  createdAt: number;
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string | null;
@@ -48,6 +58,8 @@ export interface UserProfile {
   currency: string;
   theme: 'dark' | 'light';
   createdAt: number;
+  savingsGoals?: SavingsGoal[];
+  customCategories?: string[];
 }
 
 export interface CategoryStats {
@@ -64,6 +76,35 @@ export interface DailySpending {
   income: number;
 }
 
+export interface TrendComparison {
+  amount: number;
+  previous: number;
+  percentChange: number;
+  trend: 'up' | 'down' | 'flat';
+  label: string;
+}
+
+export interface WeekendTrend {
+  weekendAvg: number;
+  weekdayAvg: number;
+  ratio: number;
+  insight: string;
+}
+
+export interface SpikeDay {
+  date: string;
+  amount: number;
+  note: string;
+}
+
+export interface HeatmapCell {
+  weekday: string;
+  week: number;
+  amount: number;
+  intensity: number;
+  date: string;
+}
+
 export interface DashboardStats {
   totalLifetimeSpent: number;
   totalLifetimeIncome: number;
@@ -71,6 +112,19 @@ export interface DashboardStats {
   incomeThisMonth: number;
   remainingBudget: number;
   budgetUsedPercent: number;
+  dailyAverage: number;
+  weeklyComparison: TrendComparison;
+  monthlyComparison: TrendComparison;
+  weekendTrend: WeekendTrend;
+  lateNightSpending: {
+    count: number;
+    total: number;
+    insight: string;
+  };
+  spikeDays: SpikeDay[];
+  subscriptionAlerts: string[];
+  impulseAlerts: string[];
+  heatmap: HeatmapCell[];
   categoryBreakdown: CategoryStats[];
   dailySpending: DailySpending[];
   transactionCount: number;

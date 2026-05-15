@@ -4,7 +4,7 @@ import { X, TrendingUp, TrendingDown, Tag as TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { NewTransaction, CATEGORIES, PAYMENT_METHODS, TAGS, Tag, Category } from '../types';
 import { useApp } from '../contexts/AppContext';
-import { localCategorize } from '../lib/categorize';
+import { localCategorize, learnCategoryCorrection } from '../lib/categorize';
 import { getTodayDate } from '../lib/utils';
 import type { Transaction } from '../types';
 
@@ -24,8 +24,9 @@ const DEFAULT: NewTransaction = {
 };
 
 export default function TransactionForm({ onClose, editTransaction }: Props) {
-  const { addTransaction, updateTransaction } = useApp();
+  const { addTransaction, updateTransaction, profile } = useApp();
   const amountRef = useRef<HTMLInputElement>(null);
+  const categoryOptions = [...CATEGORIES, ...(profile.customCategories ?? [])].filter((value, index, self) => self.indexOf(value) === index);
   const [form, setForm] = useState<NewTransaction>(
     editTransaction
       ? {
@@ -156,8 +157,14 @@ export default function TransactionForm({ onClose, editTransaction }: Props) {
                 Category
               </label>
               <select className="select-field" value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value as Category }))}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                onChange={e => {
+                  const selected = e.target.value as Category;
+                  if (form.description.trim().length > 2) {
+                    learnCategoryCorrection(form.description, selected);
+                  }
+                  setForm(f => ({ ...f, category: selected }));
+                }}>
+                {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>

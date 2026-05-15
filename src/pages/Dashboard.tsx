@@ -7,6 +7,7 @@ import { formatCurrency } from '../lib/utils';
 import Charts from '../components/Charts';
 import TransactionForm from '../components/TransactionForm';
 import { Transaction } from '../types';
+import { Link } from 'react-router-dom';
 
 /* ── Stat card component ─────────────────────────── */
 function StatCard({
@@ -48,6 +49,27 @@ export default function Dashboard() {
   const isOverBudget  = stats.remainingBudget < 0;
   const budgetWarning = stats.budgetUsedPercent >= 80 && !isOverBudget;
 
+  const monthlyNet = stats.incomeThisMonth - stats.spentThisMonth;
+  const dayOfMonth = new Date().getDate();
+  const dailyNet = dayOfMonth > 0 ? monthlyNet / dayOfMonth : 0;
+  const predictionText = monthlyNet >= 0
+    ? `If this pace continues, you will save ${formatCurrency(monthlyNet)} this month.`
+    : `Spending exceeds income by ${formatCurrency(Math.abs(monthlyNet))} this month.`;
+
+  const activeGoal = profile.savingsGoals?.slice().sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
+  const goalRemaining = activeGoal ? Math.max(activeGoal.targetAmount - activeGoal.currentAmount, 0) : 0;
+  const estimatedDays = dailyNet > 0 ? Math.ceil(goalRemaining / dailyNet) : null;
+  const predictedCompletion = estimatedDays !== null
+    ? new Date(Date.now() + estimatedDays * 24 * 60 * 60 * 1000)
+    : null;
+  const goalText = activeGoal
+    ? goalRemaining <= 0
+      ? `Goal “${activeGoal.title}” already reached!`
+      : dailyNet > 0
+        ? `At your current pace, “${activeGoal.title}” may be reached by ${predictedCompletion?.toLocaleDateString('en-IN')}.`
+        : `Add more savings or income to reach “${activeGoal.title}”.`
+    : 'Create a savings goal in Settings to track progress.';
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
 
@@ -80,7 +102,7 @@ export default function Dashboard() {
 
       {/* ── Stat cards ── */}
       {/* 2 col on mobile, 4 col on large desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Spent This Month"   value={formatCurrency(stats.spentThisMonth)}
           icon={TrendingDown} color="#ef4444"
           sub={`of ${formatCurrency(profile.monthlyBudget)} budget`} delay={0} />
@@ -128,8 +150,136 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* ── Charts ── */}
+      {/* ── Spending insights ── */}
+      <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <StatCard
+            label="Daily average"
+            value={formatCurrency(stats.dailyAverage)}
+            icon={TrendingDown}
+            color="#8b5cf6"
+            sub={`Based on ${new Date().getDate()} days this month`}
+            delay={0.02}
+          />
+          <StatCard
+            label="Weekly trend"
+            value={`${stats.weeklyComparison.percentChange.toFixed(0)}%`}
+            icon={TrendingUp}
+            color={stats.weeklyComparison.trend === 'up' ? '#ef4444' : '#10b981'}
+            sub={stats.weeklyComparison.trend === 'flat'
+              ? 'Stable week-over-week'
+              : stats.weeklyComparison.trend === 'up'
+                ? 'Spending increased' : 'Spending decreased'}
+            delay={0.04}
+          />
+          <StatCard
+            label="Monthly comparison"
+            value={`${stats.monthlyComparison.percentChange.toFixed(0)}%`}
+            icon={Target}
+            color={stats.monthlyComparison.trend === 'up' ? '#ef4444' : '#10b981'}
+            sub={stats.monthlyComparison.trend === 'up'
+              ? 'Higher than last month'
+              : stats.monthlyComparison.trend === 'down'
+                ? 'Lower than last month' : 'Flat month-over-month'}
+            delay={0.06}
+          />
+          <StatCard
+            label="Top category"
+            value={stats.categoryBreakdown[0]?.category || 'N/A'}
+            icon={Wallet}
+            color="#10b981"
+            sub={stats.categoryBreakdown[0] ? `${stats.categoryBreakdown[0].percentage.toFixed(0)}% of spend` : 'No spend data'}
+            delay={0.08}
+          />
+        </div>
+
+        <motion.div className="card"
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-primary">Smart insights</h3>
+              <p className="text-xs text-muted-custom mt-1">Key spending patterns that matter this month.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[
+              predictionText,
+              goalText,
+              stats.weekendTrend.insight,
+              stats.lateNightSpending.insight,
+              stats.subscriptionAlerts[0] || 'No obvious recurring subscriptions detected.',
+            ].map((insight, index) => (
+              <div key={index} className="rounded-2xl border border-border bg-surface-2 p-4">
+                <p className="text-sm text-primary font-medium">{insight}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
       <Charts stats={stats} />
+
+      {/* ── Heatmap + category summary ── */}
+      <div className="grid gap-4 lg:grid-cols-[1.5fr_0.9fr]">
+        <motion.div className="card"
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-primary">Spending heatmap</h3>
+              <p className="text-xs text-muted-custom mt-1">Last 28 days — darker means more spend.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-[10px] text-muted-custom mb-2">
+            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => (
+              <div key={day} className="text-center font-semibold">{day}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {stats.heatmap.map((cell) => (
+              <div key={`${cell.date}-${cell.week}`}
+                className="aspect-square rounded-2xl border border-transparent transition-all"
+                style={{ background: `rgba(16,185,129, ${0.12 + cell.intensity * 0.7})` }}
+                title={`${cell.date}: ₹${cell.amount.toFixed(0)}`}>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div className="card"
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-primary">Top categories</h3>
+              <p className="text-xs text-muted-custom mt-1">Where most of your money is going.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {stats.categoryBreakdown.slice(0, 3).map((cat) => (
+              <div key={cat.category} className="rounded-2xl border border-border bg-surface-2 p-3">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-sm font-medium text-primary truncate">{cat.category}</span>
+                  <span className="text-sm font-semibold text-primary">{cat.percentage.toFixed(0)}%</span>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-custom">
+                  <span>{formatCurrency(cat.amount)} spent</span>
+                  <span>{cat.count} transactions</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {stats.spikeDays.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-border bg-surface-2 p-3">
+              <p className="text-sm font-semibold text-primary mb-2">Spending spikes</p>
+              {stats.spikeDays.slice(0, 2).map((spike) => (
+                <div key={spike.date} className="text-sm text-muted-custom mb-2">
+                  <span className="font-medium text-primary">{spike.date}</span> — ₹{spike.amount.toFixed(0)}
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </div>
 
       {/* ── Recent Transactions ── */}
       {transactions.length > 0 && (
@@ -137,7 +287,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-primary">Recent Transactions</h3>
-            <a href="/transactions" className="text-xs text-accent hover:underline shrink-0">View all →</a>
+            <Link to="/transactions" className="text-xs text-accent hover:underline shrink-0">View all →</Link>
           </div>
           <div className="space-y-1">
             {transactions.slice(0, 5).map(tx => (

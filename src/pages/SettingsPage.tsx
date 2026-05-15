@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Moon, Sun, Target, Loader2, User, Trash2 } from 'lucide-react';
+import { Settings, Moon, Sun, Target, Loader2, User, Trash2, Plus, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '../contexts/AppContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -12,6 +12,12 @@ export default function SettingsPage() {
   const [name,   setName]   = useState(profile.displayName);
   const [budget, setBudget] = useState(String(profile.monthlyBudget));
   const [saving, setSaving] = useState(false);
+  const [goals, setGoals] = useState(profile.savingsGoals ?? []);
+  const [customCategories, setCustomCategories] = useState(profile.customCategories ?? []);
+  const [newGoalTitle, setNewGoalTitle] = useState('');
+  const [newGoalTarget, setNewGoalTarget] = useState('');
+  const [newGoalDeadline, setNewGoalDeadline] = useState('');
+  const [newCategory, setNewCategory] = useState('');
 
   function handleSave() {
     const amount = parseFloat(budget);
@@ -21,13 +27,63 @@ export default function SettingsPage() {
     }
     setSaving(true);
     try {
-      updateProfile({ displayName: name.trim() || 'You', monthlyBudget: amount });
+      updateProfile({
+        displayName: name.trim() || 'You',
+        monthlyBudget: amount,
+        savingsGoals: goals,
+        customCategories,
+      });
       toast.success('Settings saved!');
     } catch {
       toast.error('Could not save settings');
     } finally {
       setSaving(false);
     }
+  }
+
+  function addGoal() {
+    const target = parseFloat(newGoalTarget);
+    if (!newGoalTitle.trim() || isNaN(target) || target <= 0 || !newGoalDeadline) {
+      toast.error('Complete the goal details');
+      return;
+    }
+    setGoals((current) => [
+      ...current,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        title: newGoalTitle.trim(),
+        targetAmount: target,
+        currentAmount: 0,
+        deadline: newGoalDeadline,
+        createdAt: Date.now(),
+      },
+    ]);
+    setNewGoalTitle('');
+    setNewGoalTarget('');
+    setNewGoalDeadline('');
+    toast.success('Savings goal added');
+  }
+
+  function removeGoal(id: string) {
+    setGoals((current) => current.filter((goal) => goal.id !== id));
+  }
+
+  function addCategory() {
+    const category = newCategory.trim();
+    if (!category) {
+      toast.error('Enter a category name');
+      return;
+    }
+    if (customCategories.includes(category)) {
+      toast.error('Category already exists');
+      return;
+    }
+    setCustomCategories((current) => [...current, category]);
+    setNewCategory('');
+  }
+
+  function removeCategory(category: string) {
+    setCustomCategories((current) => current.filter((item) => item !== category));
   }
 
   function handleClearData() {
@@ -93,6 +149,113 @@ export default function SettingsPage() {
             min="0"
             step="100"
           />
+        </div>
+      </motion.div>
+
+      {/* Savings Goals */}
+      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+        <div className="flex items-center gap-2 mb-3">
+          <Target size={14} className="text-muted-custom" />
+          <div>
+            <h3 className="text-sm font-semibold text-primary">Savings Goals</h3>
+            <p className="text-xs text-muted-custom">Create targets and track progress over time.</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {goals.length > 0 ? goals.map((goal) => {
+            const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+            return (
+              <div key={goal.id} className="rounded-2xl border border-border p-4 bg-surface-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-primary truncate">{goal.title}</p>
+                    <p className="text-xs text-muted-custom">Target ₹{goal.targetAmount.toFixed(0)} · Deadline {goal.deadline}</p>
+                  </div>
+                  <button type="button" onClick={() => removeGoal(goal.id)} className="btn-ghost text-danger p-2">
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="progress-bar mt-3">
+                  <div className="progress-fill" style={{ width: `${progress}%` }} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-custom mt-2">
+                  <span>{progress.toFixed(0)}% saved</span>
+                  <span>₹{goal.currentAmount.toFixed(0)} / ₹{goal.targetAmount.toFixed(0)}</span>
+                </div>
+              </div>
+            );
+          }) : (
+            <p className="text-sm text-muted-custom">No savings goals yet. Add one to plan your future.</p>
+          )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 mt-4">
+          <input
+            type="text"
+            className="input-field"
+            placeholder="Goal title"
+            value={newGoalTitle}
+            onChange={e => setNewGoalTitle(e.target.value)}
+          />
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary">₹</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              className="input-field pl-7"
+              placeholder="Target amount"
+              value={newGoalTarget}
+              onChange={e => setNewGoalTarget(e.target.value)}
+              min="0"
+              step="100"
+            />
+          </div>
+          <input
+            type="date"
+            className="input-field"
+            value={newGoalDeadline}
+            onChange={e => setNewGoalDeadline(e.target.value)}
+          />
+          <button type="button" onClick={addGoal} className="btn-primary flex items-center justify-center gap-2">
+            <Plus size={14} /> Add Goal
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Custom Categories */}
+      <motion.div className="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}>
+        <div className="flex items-center gap-2 mb-3">
+          <Check size={14} className="text-muted-custom" />
+          <div>
+            <h3 className="text-sm font-semibold text-primary">Custom Categories</h3>
+            <p className="text-xs text-muted-custom">Add categories for your unique spending patterns.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {customCategories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => removeCategory(category)}
+              className="tag cursor-pointer border-danger/20 bg-danger/10 text-danger"
+            >
+              {category} <X size={12} />
+            </button>
+          ))}
+          {customCategories.length === 0 && (
+            <p className="text-sm text-muted-custom">No custom categories set yet.</p>
+          )}
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            type="text"
+            className="input-field flex-1"
+            placeholder="New category name"
+            value={newCategory}
+            onChange={e => setNewCategory(e.target.value)}
+          />
+          <button type="button" onClick={addCategory} className="btn-primary flex-none">
+            Add Category
+          </button>
         </div>
       </motion.div>
 

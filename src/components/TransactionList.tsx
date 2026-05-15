@@ -244,13 +244,13 @@ export default function TransactionList({ onEdit }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-primary truncate">{tx.description}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="badge text-[10px]" style={{
+                      <div className="flex items-center flex-wrap gap-1.5 mt-0.5 min-w-0">
+                        <span className="badge text-[10px] truncate max-w-full" style={{
                           background: `${CATEGORY_COLORS[tx.category]}18`,
                           color: CATEGORY_COLORS[tx.category],
                           border: `1px solid ${CATEGORY_COLORS[tx.category]}30`,
                         }}>{tx.category}</span>
-                        <span className="text-[10px] text-muted-custom">{formatRelativeDate(tx.date)}</span>
+                        <span className="text-[10px] text-muted-custom whitespace-nowrap">{formatRelativeDate(tx.date)}</span>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">

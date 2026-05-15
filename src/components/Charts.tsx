@@ -48,7 +48,7 @@ export default function Charts({ stats }: ChartsProps) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
       {/* ── Pie / Category breakdown ── */}
-      <motion.div className="card"
+      <motion.div className="card min-w-0"
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <h3 className="text-sm font-semibold text-primary mb-3">Category Breakdown</h3>
 
@@ -96,7 +96,7 @@ export default function Charts({ stats }: ChartsProps) {
       </motion.div>
 
       {/* ── Bar / Spending trends ── */}
-      <motion.div className="card"
+      <motion.div className="card min-w-0"
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
         <h3 className="text-sm font-semibold text-primary mb-3">Spending Trends (Last 14 Days)</h3>
 
